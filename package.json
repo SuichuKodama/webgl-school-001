@@ -5,9 +5,9 @@
   "main": "index.js",
   "scripts": {
     "start": "npm run dev",
-    "dev": "browser-sync ./src -w",
-    "stage": "rsync -av --delete --exclude .DS_Store --exclude .git --exclude node_modules --exclude package.json --exclude package-lock.json --exclude .editorconfig --exclude .gitignore --exclude dist ./ ",
-    "dist": "rsync -av --delete --exclude .DS_Store --exclude .git --exclude node_modules --exclude package.json --exclude package-lock.json --exclude .editorconfig --exclude .gitignore --exclude dist ./ dist/",
+    "dev": "browser-sync ./src/ -w",
+    "stage": "rsync -av --delete --exclude .DS_Store --exclude .git --exclude node_modules --exclude package.json --exclude package-lock.json --exclude .editorconfig --exclude .gitignore --exclude dist ./dist/ ",
+    "dist": "rsync -av --delete --exclude .DS_Store --exclude .git --exclude node_modules --exclude package.json --exclude package-lock.json --exclude .editorconfig --exclude .gitignore --exclude dist ./src/ dist/",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "author": "",
