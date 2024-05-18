@@ -1,4 +1,3 @@
-
 // = 009 ======================================================================
 // これまでのサンプルでは、メッシュは「１つのジオメトリから１つ」ずつ生成してい
 // ましたが、実際の案件では、同じジオメトリを再利用しながら「複数のメッシュ」を
@@ -9,14 +8,18 @@
 // ましょう。
 // ============================================================================
 
-import * as THREE from './lib/three.module.js';
-import { OrbitControls } from './lib/OrbitControls.js';
+import * as THREE from "./lib/three.module.js";
+import { OrbitControls } from "./lib/OrbitControls.js";
 
-window.addEventListener('DOMContentLoaded', () => {
-  const wrapper = document.querySelector('#webgl');
-  const app = new ThreeApp(wrapper);
-  app.render();
-}, false);
+window.addEventListener(
+  "DOMContentLoaded",
+  () => {
+    const wrapper = document.querySelector("#webgl");
+    const app = new ThreeApp(wrapper);
+    app.render();
+  },
+  false
+);
 
 class ThreeApp {
   /**
@@ -24,15 +27,15 @@ class ThreeApp {
    */
   static CAMERA_PARAM = {
     // fovy は Field of View Y のことで、縦方向の視野角を意味する
-    fovy: 60,
+    fovy: 40,
     // 描画する空間のアスペクト比（縦横比）
     aspect: window.innerWidth / window.innerHeight,
     // 描画する空間のニアクリップ面（最近面）
     near: 0.1,
     // 描画する空間のファークリップ面（最遠面）
-    far: 20.0,
+    far: 60.0,
     // カメラの座標
-    position: new THREE.Vector3(0.0, 2.0, 10.0),
+    position: new THREE.Vector3(-10.0, 10.0, -10.0),
     // カメラの注視点
     lookAt: new THREE.Vector3(0.0, 0.0, 0.0),
   };
@@ -40,16 +43,16 @@ class ThreeApp {
    * レンダラー定義のための定数
    */
   static RENDERER_PARAM = {
-    clearColor: 0x666666,       // 画面をクリアする色
-    width: window.innerWidth,   // レンダラーに設定する幅
+    clearColor: 0xeeeeee, // 画面をクリアする色
+    width: window.innerWidth, // レンダラーに設定する幅
     height: window.innerHeight, // レンダラーに設定する高さ
   };
   /**
    * 平行光源定義のための定数
    */
   static DIRECTIONAL_LIGHT_PARAM = {
-    color: 0xffffff,                            // 光の色
-    intensity: 1.0,                             // 光の強度
+    color: 0xffffff, // 光の色
+    intensity: 5.0, // 光の強度
     position: new THREE.Vector3(1.0, 1.0, 1.0), // 光の向き
   };
   /**
@@ -57,26 +60,29 @@ class ThreeApp {
    */
   static AMBIENT_LIGHT_PARAM = {
     color: 0xffffff, // 光の色
-    intensity: 0.1,  // 光の強度
+    intensity: 0.2, // 光の強度
   };
   /**
    * マテリアル定義のための定数
    */
   static MATERIAL_PARAM = {
-    color: 0x3399ff, // マテリアルの基本色
+    color: 0x250079, // マテリアルの基本色
+    planeColor: 0xff0000, // 平面ジオメトリの色
   };
 
-  renderer;         // レンダラ
-  scene;            // シーン
-  camera;           // カメラ
+  renderer; // レンダラ
+  scene; // シーン
+  camera; // カメラ
   directionalLight; // 平行光源（ディレクショナルライト）
-  ambientLight;     // 環境光（アンビエントライト）
-  material;         // マテリアル
-  torusGeometry;    // トーラスジオメトリ
-  torusArray;       // トーラスメッシュの配列 @@@
-  controls;         // オービットコントロール
-  axesHelper;       // 軸ヘルパー
-  isDown;           // キーの押下状態用フラグ
+  ambientLight;
+  spotLight; // 環境光（アンビエントライト）
+  material; // マテリアル
+  boxGeometry; // トーラスジオメトリ
+  planeGeometry; // 平面ジオメトリ
+  torusArray; // トーラスメッシュの配列 @@@
+  controls; // オービットコントロール
+  axesHelper; // 軸ヘルパー
+  isDown; // キーの押下状態用フラグ
 
   /**
    * コンストラクタ
@@ -88,7 +94,10 @@ class ThreeApp {
     const color = new THREE.Color(ThreeApp.RENDERER_PARAM.clearColor);
     this.renderer = new THREE.WebGLRenderer();
     this.renderer.setClearColor(color);
-    this.renderer.setSize(ThreeApp.RENDERER_PARAM.width, ThreeApp.RENDERER_PARAM.height);
+    this.renderer.setSize(
+      ThreeApp.RENDERER_PARAM.width,
+      ThreeApp.RENDERER_PARAM.height
+    );
     wrapper.appendChild(this.renderer.domElement);
 
     // シーン
@@ -99,7 +108,7 @@ class ThreeApp {
       ThreeApp.CAMERA_PARAM.fovy,
       ThreeApp.CAMERA_PARAM.aspect,
       ThreeApp.CAMERA_PARAM.near,
-      ThreeApp.CAMERA_PARAM.far,
+      ThreeApp.CAMERA_PARAM.far
     );
     this.camera.position.copy(ThreeApp.CAMERA_PARAM.position);
     this.camera.lookAt(ThreeApp.CAMERA_PARAM.lookAt);
@@ -109,36 +118,69 @@ class ThreeApp {
       ThreeApp.DIRECTIONAL_LIGHT_PARAM.color,
       ThreeApp.DIRECTIONAL_LIGHT_PARAM.intensity
     );
-    this.directionalLight.position.copy(ThreeApp.DIRECTIONAL_LIGHT_PARAM.position);
+    this.directionalLight.position.copy(
+      ThreeApp.DIRECTIONAL_LIGHT_PARAM.position
+    );
     this.scene.add(this.directionalLight);
 
     // アンビエントライト（環境光）
     this.ambientLight = new THREE.AmbientLight(
       ThreeApp.AMBIENT_LIGHT_PARAM.color,
-      ThreeApp.AMBIENT_LIGHT_PARAM.intensity,
+      ThreeApp.AMBIENT_LIGHT_PARAM.intensity
     );
     this.scene.add(this.ambientLight);
 
+    // スポットライト光源を作成
+    // new THREE.SpotLight(色, 光の強さ, 距離, 照射角, ボケ具合, 減衰率)
+    // this.spotLight = new THREE.SpotLight(
+    //   0xffffff,
+    //   50,
+    //   10,
+    //   Math.PI / 180,
+    //   80,
+    //   0.1
+    // );
+    // this.spotLight.position.set(0, 5, -5);
+    // this.scene.add(this.spotLight);
+
     // マテリアル
-    this.material = new THREE.MeshPhongMaterial(ThreeApp.MATERIAL_PARAM);
+    // this.material = new THREE.MeshPhongMaterial(ThreeApp.MATERIAL_PARAM);
+    this.material = new THREE.MeshLambertMaterial(ThreeApp.MATERIAL_PARAM);
+    const planeMaterial = new THREE.MeshLambertMaterial(
+      ThreeApp.MATERIAL_PARAM.planeColor
+    );
 
     // 共通のジオメトリ、マテリアルから、複数のメッシュインスタンスを作成する @@@
-    const torusCount = 10;
-    const transformScale = 5.0;
-    this.torusGeometry = new THREE.TorusGeometry(0.5, 0.2, 8, 16);
-    this.torusArray = [];
-    for (let i = 0; i < torusCount; ++i) {
+    const boxCount = 1600;
+    const transformScale = 1;
+    this.boxGeometry = new THREE.BoxGeometry(1, 1, 1, 1);
+    this.boxArray = [];
+    for (let i = 0; i < boxCount; ++i) {
       // トーラスメッシュのインスタンスを生成
-      const torus = new THREE.Mesh(this.torusGeometry, this.material);
-      // 座標をランダムに散らす
-      torus.position.x = (Math.random() * 2.0 - 1.0) * transformScale;
-      torus.position.y = (Math.random() * 2.0 - 1.0) * transformScale;
-      torus.position.z = (Math.random() * 2.0 - 1.0) * transformScale;
-      // シーンに追加する
-      this.scene.add(torus);
+      const box = new THREE.Mesh(this.boxGeometry, this.material);
+      // 座標を隙間なく正方形に並べる
+      box.position.x = (i % 40) * transformScale - 10;
+      box.position.y = 0;
+      box.position.z = Math.floor(i / 40) * transformScale - 4;
+
+      //boxCount[0]番目のオブジェクトをposition.y-1に移動
+      if (i === 12) {
+        box.position.y = -0.5;
+      }
+
+      this.scene.add(box);
       // 配列に入れておく
-      this.torusArray.push(torus);
+      this.boxArray.push(box);
     }
+
+    // 平面ジオメトリ
+    this.planeGeometry = new THREE.PlaneGeometry(100, 100, 100, 100);
+    const plane = new THREE.Mesh(this.planeGeometry, this.material);
+    plane.position.y = -0.5;
+    plane.position.x = 4.5;
+    plane.position.z = 0;
+    plane.rotation.x = -Math.PI / 2;
+    this.scene.add(plane);
 
     // 軸ヘルパー
     const axesBarLength = 5.0;
@@ -146,7 +188,7 @@ class ThreeApp {
     this.scene.add(this.axesHelper);
 
     // コントロール
-    this.controls = new OrbitControls(this.camera, this.renderer.domElement);
+    // this.controls = new OrbitControls(this.camera, this.renderer.domElement);
 
     // this のバインド
     this.render = this.render.bind(this);
@@ -155,24 +197,36 @@ class ThreeApp {
     this.isDown = false;
 
     // キーの押下や離す操作を検出できるようにする
-    window.addEventListener('keydown', (keyEvent) => {
-      switch (keyEvent.key) {
-        case ' ':
-          this.isDown = true;
-          break;
-        default:
-      }
-    }, false);
-    window.addEventListener('keyup', (keyEvent) => {
-      this.isDown = false;
-    }, false);
+    window.addEventListener(
+      "keydown",
+      (keyEvent) => {
+        switch (keyEvent.key) {
+          case " ":
+            this.isDown = true;
+            break;
+          default:
+        }
+      },
+      false
+    );
+    window.addEventListener(
+      "keyup",
+      (keyEvent) => {
+        this.isDown = false;
+      },
+      false
+    );
 
     // ウィンドウのリサイズを検出できるようにする
-    window.addEventListener('resize', () => {
-      this.renderer.setSize(window.innerWidth, window.innerHeight);
-      this.camera.aspect = window.innerWidth / window.innerHeight;
-      this.camera.updateProjectionMatrix();
-    }, false);
+    window.addEventListener(
+      "resize",
+      () => {
+        this.renderer.setSize(window.innerWidth, window.innerHeight);
+        this.camera.aspect = window.innerWidth / window.innerHeight;
+        this.camera.updateProjectionMatrix();
+      },
+      false
+    );
   }
 
   /**
@@ -183,18 +237,17 @@ class ThreeApp {
     requestAnimationFrame(this.render);
 
     // コントロールを更新
-    this.controls.update();
+    // this.controls.update();
 
     // フラグに応じてオブジェクトの状態を変化させる
-    if (this.isDown === true) {
-      // Y 軸回転 @@@
-      this.torusArray.forEach((torus) => {
-        torus.rotation.y += 0.05;
-      });
-    }
+    // if (this.isDown === true) {
+    //   // Y 軸回転 @@@
+    //   this.boxArray.forEach((torus) => {
+    //     torus.rotation.y += 0.05;
+    //   });
+    // }
 
     // レンダラーで描画
     this.renderer.render(this.scene, this.camera);
   }
 }
-
