@@ -151,23 +151,27 @@ class ThreeApp {
     );
 
     // 共通のジオメトリ、マテリアルから、複数のメッシュインスタンスを作成する @@@
-    const boxCount = 1600;
+    const boxCount = 900;
     const transformScale = 1;
     this.boxGeometry = new THREE.BoxGeometry(1, 1, 1, 1);
     this.boxArray = [];
     for (let i = 0; i < boxCount; ++i) {
-      // トーラスメッシュのインスタンスを生成
+      // メッシュのインスタンスを生成
       const box = new THREE.Mesh(this.boxGeometry, this.material);
       // 座標を隙間なく正方形に並べる
-      box.position.x = (i % 40) * transformScale - 10;
+      box.position.x = (i % 30) * transformScale - 10;
       box.position.y = 0;
-      box.position.z = Math.floor(i / 40) * transformScale - 4;
+      box.position.z = Math.floor(i / 30) * transformScale - 4;
 
-      //boxCount[0]番目のオブジェクトをposition.y-1に移動
-      if (i === 12) {
-        box.position.y = -0.5;
+      if (i === boxCount - 1) {
+        this.boxArray.forEach((box, index) => {
+          // 各ボックスの処理を200ミリ秒ずつ遅延させる
+          let delay = index * 200;
+          this.boxTransformY(box, delay);
+        });
       }
 
+      // シーンに追加
       this.scene.add(box);
       // 配列に入れておく
       this.boxArray.push(box);
@@ -228,6 +232,23 @@ class ThreeApp {
       false
     );
   }
+
+  boxTransformY = (box, delay) => {
+    setTimeout(() => {
+      let targetY = -1;
+      let duration = 4;
+      let currentTime = 0;
+      let initialY = box.position.y;
+      let timer = setInterval(() => {
+        currentTime += 1 / 60;
+        box.position.y =
+          initialY + ((targetY - initialY) * currentTime) / duration;
+        if (currentTime >= duration) {
+          clearInterval(timer);
+        }
+      }, 1000 / 60);
+    }, delay);
+  };
 
   /**
    * 描画処理
