@@ -27,7 +27,7 @@ class ThreeApp {
    */
   static CAMERA_PARAM = {
     // fovy は Field of View Y のことで、縦方向の視野角を意味する
-    fovy: 40,
+    fovy: 30,
     // 描画する空間のアスペクト比（縦横比）
     aspect: window.innerWidth / window.innerHeight,
     // 描画する空間のニアクリップ面（最近面）
@@ -67,7 +67,6 @@ class ThreeApp {
    */
   static MATERIAL_PARAM = {
     color: 0x250079, // マテリアルの基本色
-    planeColor: 0xff0000, // 平面ジオメトリの色
   };
 
   renderer; // レンダラ
@@ -167,9 +166,19 @@ class ThreeApp {
         this.boxArray.forEach((box, index) => {
           // 各ボックスの処理を200ミリ秒ずつ遅延させる
           let delay = index * 200;
-          this.boxTransformY(box, delay);
+          this.boxTransformYDown(box, delay);
         });
       }
+      //1000後にboxTransformYUp関数が実行される
+      setTimeout(() => {
+        if (i === boxCount - 1) {
+          this.boxArray.forEach((box, index) => {
+            // 各ボックスの処理を200ミリ秒ずつ遅延させる
+            let delay = index * 200;
+            this.boxTransformYUp(box, delay);
+          });
+        }
+      }, 10000);
 
       // シーンに追加
       this.scene.add(box);
@@ -195,23 +204,16 @@ class ThreeApp {
     // キーの押下状態を保持するフラグ
     this.isDown = false;
 
-    // キーの押下や離す操作を検出できるようにする
+    //スペースキーを押すとchangeColor関数が実行される
     window.addEventListener(
       "keydown",
       (keyEvent) => {
         switch (keyEvent.key) {
           case " ":
-            this.isDown = true;
+            this.changeColor();
             break;
           default:
         }
-      },
-      false
-    );
-    window.addEventListener(
-      "keyup",
-      (keyEvent) => {
-        this.isDown = false;
       },
       false
     );
@@ -228,7 +230,7 @@ class ThreeApp {
     );
   }
 
-  boxTransformY = (box, delay) => {
+  boxTransformYDown = (box, delay) => {
     setTimeout(() => {
       let targetY = -1;
       let duration = 4;
@@ -245,6 +247,36 @@ class ThreeApp {
     }, delay);
   };
 
+  boxTransformYUp = (box, delay) => {
+    setTimeout(() => {
+      let targetY = 0;
+      let duration = 4;
+      let currentTime = 0;
+      let initialY = box.position.y;
+      let timer = setInterval(() => {
+        currentTime += 1 / 60;
+        box.position.y =
+          initialY + ((targetY - initialY) * currentTime) / duration;
+        if (currentTime >= duration) {
+          clearInterval(timer);
+        }
+      }, 1000 / 60);
+    }, delay);
+  };
+
+  //MATERIAL_PARAMのcolorが４色の中からランダムで選択される関数
+  changeColor = () => {
+    const colorArray = [0x250079, 0x4caf50, 0xffc107, 0xff5722];
+    const randomColor =
+      colorArray[Math.floor(Math.random() * colorArray.length)];
+    this.material.color.set(randomColor);
+
+    const svgLogos = document.querySelectorAll(".js-svg-logo");
+    svgLogos.forEach((svgLogo) => {
+      svgLogo.style.fill = `#${randomColor.toString(16)}`;
+    });
+  };
+
   /**
    * 描画処理
    */
@@ -254,14 +286,6 @@ class ThreeApp {
 
     // コントロールを更新
     // this.controls.update();
-
-    // フラグに応じてオブジェクトの状態を変化させる
-    // if (this.isDown === true) {
-    //   // Y 軸回転 @@@
-    //   this.boxArray.forEach((torus) => {
-    //     torus.rotation.y += 0.05;
-    //   });
-    // }
 
     // レンダラーで描画
     this.renderer.render(this.scene, this.camera);
