@@ -1,4 +1,4 @@
-# webgl-school-001
+# webgl-school
 
 npm i
 
