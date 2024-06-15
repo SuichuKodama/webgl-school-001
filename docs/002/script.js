@@ -27,7 +27,7 @@ class ThreeApp {
    * レンダラー定義のための定数
    */
   static RENDERER_PARAM = {
-    clearColor: 0x666666,
+    clearColor: 0xeeeeee,
     width: window.innerWidth,
     height: window.innerHeight,
   };
@@ -44,13 +44,13 @@ class ThreeApp {
    */
   static AMBIENT_LIGHT_PARAM = {
     color: 0xffffff,
-    intensity: 0.1,
+    intensity: 2,
   };
   /**
    * マテリアル定義のための定数
    */
   static MATERIAL_PARAM = {
-    color: 0x3399ff,
+    color: 0xeeeeee,
   };
 
   renderer; // レンダラ
@@ -59,7 +59,7 @@ class ThreeApp {
   directionalLight; // 平行光源（ディレクショナルライト）
   ambientLight; // 環境光（アンビエントライト）
   material; // マテリアル
-  torusGeometry; // トーラスジオメトリ
+  sphereGeometry; // sphereジオメトリ
   torusArray; // トーラスメッシュの配列
   controls; // オービットコントロール
   axesHelper; // 軸ヘルパー
@@ -115,25 +115,88 @@ class ThreeApp {
     // マテリアル
     this.material = new THREE.MeshPhongMaterial(ThreeApp.MATERIAL_PARAM);
 
-    // グループ
-    this.group = new THREE.Group();
-    // グループはメッシュなどと同様に Object3D を継承しているのでシーンに追加できる
-    this.scene.add(this.group);
+    // グループを複数作成するための配列
+    this.groups = [];
 
     // 共通のジオメトリ、マテリアルから、複数のメッシュインスタンスを作成する
-    const torusCount = 10;
-    const transformScale = 5.0;
-    this.torusGeometry = new THREE.TorusGeometry(0.5, 0.2, 8, 16);
-    this.torusArray = [];
-    for (let i = 0; i < torusCount; ++i) {
-      const torus = new THREE.Mesh(this.torusGeometry, this.material);
-      torus.position.x = (Math.random() * 2.0 - 1.0) * transformScale;
-      torus.position.y = (Math.random() * 2.0 - 1.0) * transformScale;
-      torus.position.z = (Math.random() * 2.0 - 1.0) * transformScale;
-      // シーンに追加するのではなく、グループに追加する
-      this.group.add(torus);
-      this.torusArray.push(torus);
+    const sphereCount = 10; // 球の数
+    const maxSphereDistance = 4; // 球同士の最大距離
+    const minSphereDistance = 2; // 球同士の最小距離
+    this.sphereGeometry = new THREE.SphereGeometry(0.4, 10, 10);
+
+    // 回転軸の配列を定義
+    const rotationAxes = [
+      new THREE.Vector3(1, 0, 0), // X軸
+      new THREE.Vector3(0, 1, 0), // Y軸
+      new THREE.Vector3(0, 0, 1), // Z軸
+    ];
+
+    // グループを3つ作成して異なる回転軸を設定
+    for (let j = 0; j < rotationAxes.length; ++j) {
+      const group = new THREE.Group();
+
+      // 初期位置の設定
+      for (let i = 0; i < sphereCount; ++i) {
+        const sphere = new THREE.Mesh(this.sphereGeometry, this.material);
+
+        const radian = (i / sphereCount) * Math.PI * 2;
+        const initialX = Math.cos(radian) * maxSphereDistance;
+        const initialZ = Math.sin(radian) * maxSphereDistance;
+
+        sphere.position.set(initialX, 0, initialZ);
+        group.add(sphere);
+      }
+
+      // グループをシーンに追加
+      this.scene.add(group);
+      this.groups.push({ group, axis: rotationAxes[j] });
     }
+
+    // アニメーションの速度調整用の定数
+    this.baseAnimationSpeed = 0.012;
+    this.fastAnimationSpeed = 0.02;
+    this.animationSpeed = this.baseAnimationSpeed;
+    // アニメーションパス上の現在位置（0から1の間）
+    let currentPosition = 0;
+
+    // 球のアニメーションを実行する関数
+    const animateSpheres = () => {
+      currentPosition += this.animationSpeed;
+
+      if (currentPosition >= 1) {
+        currentPosition = 0;
+      }
+
+      // アニメーションの進行度に基づいて距離を計算する
+      const sphereDistance =
+        minSphereDistance +
+        (maxSphereDistance - minSphereDistance) *
+          (0.5 - 0.5 * Math.cos(currentPosition * Math.PI * 2));
+
+      // グループ内のすべての球の位置を更新する
+      this.groups.forEach(({ group, axis }) => {
+        for (let i = 0; i < sphereCount; ++i) {
+          const radian = (i / sphereCount) * Math.PI * 2;
+          const sphere = group.children[i]; // グループ内の各球にアクセスする
+
+          const targetX = Math.cos(radian) * sphereDistance;
+          const targetZ = Math.sin(radian) * sphereDistance;
+
+          sphere.position.set(targetX, 0, targetZ);
+        }
+
+        // グループを回転させる
+        group.rotation.x += axis.x * this.animationSpeed;
+        group.rotation.y += axis.y * this.animationSpeed;
+        group.rotation.z += axis.z * this.animationSpeed;
+      });
+
+      // 次のフレームをリクエストする
+      requestAnimationFrame(animateSpheres);
+    };
+
+    // アニメーションを開始する
+    animateSpheres();
 
     // 軸ヘルパー
     const axesBarLength = 5.0;
@@ -156,6 +219,7 @@ class ThreeApp {
         switch (keyEvent.key) {
           case " ":
             this.isDown = true;
+            this.animationSpeed = this.fastAnimationSpeed;
             break;
           default:
         }
@@ -165,7 +229,10 @@ class ThreeApp {
     window.addEventListener(
       "keyup",
       (keyEvent) => {
-        this.isDown = false;
+        if (keyEvent.key === " ") {
+          this.isDown = false;
+          this.animationSpeed = this.baseAnimationSpeed;
+        }
       },
       false
     );
@@ -191,14 +258,6 @@ class ThreeApp {
 
     // コントロールを更新
     this.controls.update();
-
-    // フラグに応じてオブジェクトの状態を変化させる
-    if (this.isDown === true) {
-      // this.torusArray.forEach((torus) => {
-      //   torus.rotation.y += 0.05;
-      // });
-      this.group.rotation.y += 0.05;
-    }
 
     // レンダラーで描画
     this.renderer.render(this.scene, this.camera);
