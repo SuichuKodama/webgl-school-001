@@ -199,7 +199,7 @@ class ThreeApp {
     animateSpheres();
 
     // 軸ヘルパー
-    const axesBarLength = 5.0;
+    const axesBarLength = 0;
     this.axesHelper = new THREE.AxesHelper(axesBarLength);
     this.scene.add(this.axesHelper);
 
